@@ -1,0 +1,43 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+version = project.mod_version + (project.hasProperty('build_number') ? "+b" + project.build_number : "")
+group = project.maven_group
+base { archivesName = project.archives_base_name }
+
+repositories {
+	mavenCentral()
+	maven { name = 'Lavalink'; url = 'https://maven.lavalink.dev/releases' }
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"   // 26.x is unobfuscated: Mojang names, no mappings line
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// MP3 decoder for local files (pure Java), bundled inside the mod jar (jar-in-jar)
+	implementation 'javazoom:jlayer:1.0.1'
+	include 'javazoom:jlayer:1.0.1'
+
+	// Lavaplayer + the YouTube plugin (same versions the Simple Music Player mod ships) for YouTube / SoundCloud / links.
+	// Loom's "include" does NOT pull in transitive libraries, so every one Lavaplayer needs at runtime is listed here.
+	implementation 'dev.arbjerg:lavaplayer:2.2.6'
+	implementation 'dev.lavalink.youtube:v2:1.18.0'
+	def bundled = [
+		'dev.arbjerg:lavaplayer:2.2.6', 'dev.arbjerg:lava-common:2.2.6', 'dev.arbjerg:lavaplayer-natives:2.2.6',
+		'dev.lavalink.youtube:v2:1.18.0', 'dev.lavalink.youtube:common:1.18.0',
+		'org.mozilla:rhino:1.7.15', 'org.mozilla:rhino-engine:1.7.15', 'com.grack:nanojson:1.7',
+		'org.apache.httpcomponents:httpclient:4.5.14', 'org.apache.httpcomponents:httpcore:4.4.16', 'commons-logging:commons-logging:1.2',
+		'com.fasterxml.jackson.core:jackson-core:2.15.2', 'com.fasterxml.jackson.core:jackson-databind:2.15.2', 'com.fasterxml.jackson.core:jackson-annotations:2.15.2',
+		'org.jsoup:jsoup:1.16.1', 'net.iharder:base64:2.3.9', 'org.json:json:20240303'
+	]
+	bundled.each { include it }
+}
+
+processResources {
+	inputs.property "version", project.version
+	filesMatching("fabric.mod.json") { expand "version": project.version }
+}
+
+tasks.withType(JavaCompile).configureEach { it.options.release = 25; it.options.encoding = 'UTF-8' }
+java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_25; targetCompatibility = JavaVersion.VERSION_25 }
